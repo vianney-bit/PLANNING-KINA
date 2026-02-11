@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Planning KINA</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background:#fafafa; }
+    h1 { margin:0 0 6px; }
+    .sub { color:#666; margin-bottom: 16px; }
+
+    .grid { display:grid; grid-template-columns: 420px 1fr; gap: 16px; align-items:start; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } }
+
+    .card { background:#fff; border:1px solid #e6e6e6; border-radius:14px; padding:16px; box-shadow: 0 1px 10px rgba(0,0,0,.04); }
+    .muted { color:#777; }
+    .row { display:flex; gap:10px; flex-wrap: wrap; }
+    .row > * { flex: 1 1 160px; }
+
+    label { font-size: 12px; color:#666; display:block; margin: 10px 0 6px; }
+    input, select, textarea {
+      width: 100%; padding:10px 12px; border:1px solid #ddd; border-radius:10px; outline:none; background:#fff;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+
+    .btn { padding:10px 14px; border-radius:10px; border:0; cursor:pointer; }
+    .btn-primary { background:#ff7a00; color:#fff; font-weight:700; }
+    .btn-ghost { background:#fff; border:1px solid #ddd; }
+    .btn-dark { background:#2b2b2b; color:#fff; border:1px solid rgba(255,255,255,.18); }
+    .status { margin-left:10px; }
+
+    .chips { display:flex; flex-wrap:wrap; gap:10px; }
+    .needCard {
+      background:#111; color:#fff; border-radius:14px; padding:12px 12px;
+      min-width: 280px; max-width: 420px;
+      box-shadow: 0 1px 10px rgba(0,0,0,.10);
+    }
+    .needTop { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+    .pill { font-size:12px; padding:4px 10px; border-radius:999px; background:#2b2b2b; border:1px solid rgba(255,255,255,.18); white-space:nowrap; }
+    .needTitle { font-weight:800; margin:0; }
+    .needMeta { font-size:12px; color:rgba(255,255,255,.85); margin-top:6px; line-height: 1.35; }
+    .needActions { margin-top:10px; display:flex; gap:10px; flex-wrap:wrap; }
+
+    .list { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+    .projCard { background:#fff; border:1px solid #e6e6e6; border-radius:14px; padding:14px; box-shadow:0 1px 10px rgba(0,0,0,.04); }
+    .projName { font-weight:800; margin:0; }
+    .small { font-size:12px; color:#666; margin-top:6px; }
+    .sep { height:1px; background:#eaeaea; margin:14px 0; }
+
+    /* Modal */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      display:none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 9999;
+    }
+    .modal {
+      width: min(720px, 100%);
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid #e6e6e6;
+      box-shadow: 0 10px 40px rgba(0,0,0,.25);
+      padding: 16px;
+    }
+    .modalTop { display:flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .modalTitle { margin: 0; font-weight: 900; }
+    .x { cursor:pointer; border:0; background:#fff; font-size: 18px; }
+    .datesGrid { display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-top: 8px; }
+    .dateItem { border:1px solid #eee; border-radius: 12px; padding: 10px; display:flex; gap:10px; align-items:center; }
+    .modalActions { margin-top: 14px; display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+  <h1>Planning KINA</h1>
+  <div class="sub">MVP — Projets & Besoins (FR) + Affectation</div>
+
+  <!-- Bandeau besoins -->
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0;">Besoins à affecter</h2>
+        <div class="muted" style="margin-top:6px;">Besoins non affectés / partiellement affectés.</div>
+      </div>
+    </div>
+
+    <div id="needsBar" class="chips" style="margin-top:12px;"></div>
+    <div id="needsEmpty" class="muted" style="display:none; margin-top:10px;">Aucun besoin à affecter pour le moment.</div>
+  </div>
+
+  <div class="grid">
+    <!-- Colonne gauche: création -->
+    <div class="card">
+      <h2 style="margin:0 0 8px;">Créer un projet</h2>
+
+      <label>Nom du client</label>
+      <input id="clientName" placeholder="Ex: STUDIO 89" />
+
+      <label>Nom du projet</label>
+      <input id="projectName" placeholder="Ex: MAPR 11" />
+
+      <label>Email contact client</label>
+      <input id="clientEmail" placeholder="Ex: prod@client.fr" />
+
+      <div class="row">
+        <div>
+          <label>Date début (optionnel)</label>
+          <input id="projectStart" type="date" />
+        </div>
+        <div>
+          <label>Date fin (optionnel)</label>
+          <input id="projectEnd" type="date" />
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <button class="btn btn-primary" id="btnCreateProject">+ Créer le projet</button>
+        <span class="status" id="statusProject"></span>
+      </div>
+
+      <div class="sep"></div>
+
+      <h2 style="margin:0 0 8px;">Ajouter un besoin</h2>
+      <div class="muted" style="font-size:12px; margin-bottom:8px;">Le besoin s’ajoute “non affecté” et apparaît en haut.</div>
+
+      <label>Projet</label>
+      <select id="needProject"></select>
+
+      <div class="row">
+        <div>
+          <label>Type de ressource</label>
+          <select id="resourceType">
+            <option value="human">Moyen humain</option>
+            <option value="vehicle">Véhicule</option>
+            <option value="parking">Parking</option>
+          </select>
+        </div>
+        <div>
+          <label>Sous-type</label>
+          <input id="subtype" placeholder="Ex: RG / ADJOINT / ARA / DECO / VAN_9 / PARKING" />
+        </div>
+      </div>
+
+      <label>Dates (au choix)</label>
+      <div class="muted" style="font-size:12px; margin-bottom:6px;">
+        - Soit une <b>période</b> (début/fin) &nbsp;|&nbsp; - Soit une <b>liste</b> (dates séparées par des virgules)
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Début</label>
+          <input id="needStart" type="date" />
+        </div>
+        <div>
+          <label>Fin</label>
+          <input id="needEnd" type="date" />
+        </div>
+      </div>
+
+      <label>Ou liste de dates (discontinu)</label>
+      <input id="needDatesList" placeholder="Ex: 2026-02-10,2026-02-12,2026-02-14" />
+
+      <div class="row">
+        <div>
+          <label>Quantité</label>
+          <input id="quantity" type="number" min="1" value="1" />
+        </div>
+        <div>
+          <label>Brut / jour (si humain)</label>
+          <input id="dailyBrut" type="number" min="0" step="1" placeholder="Ex: 350" />
+        </div>
+      </div>
+
+      <label>Note (optionnel)</label>
+      <textarea id="needNote" placeholder="Infos utiles (horaires, permis, contraintes…)"></textarea>
+
+      <div style="margin-top:12px;">
+        <button class="btn btn-primary" id="btnCreateNeed">+ Ajouter le besoin</button>
+        <span class="status" id="statusNeed"></span>
+      </div>
+    </div>
+
+    <!-- Colonne droite: listes -->
+    <div>
+      <div class="card" style="margin-bottom:12px;">
+        <h2 style="margin:0;">Projets</h2>
+        <div class="muted" style="margin-top:6px;">Liste live des derniers projets</div>
+      </div>
+      <div id="projectsList" class="list"></div>
+      <div id="projectsEmpty" class="muted" style="display:none; margin-top:10px;">Aucun projet pour le moment.</div>
+    </div>
+  </div>
+
+  <!-- Modal Affectation -->
+  <div id="overlay" class="overlay">
+    <div class="modal">
+      <div class="modalTop">
+        <div>
+          <h2 class="modalTitle" id="modalTitle">Affecter</h2>
+          <div class="muted" id="modalSubtitle"></div>
+        </div>
+        <button class="x" id="btnClose" title="Fermer">✕</button>
+      </div>
+
+      <div id="vehicleOwnerBlock" style="display:none; margin-top:10px;">
+        <label>Type de véhicule</label>
+        <div class="row">
+          <button class="btn btn-ghost" id="vehInternal">Interne</button>
+          <button class="btn btn-ghost" id="vehRental">Location</button>
+        </div>
+        <div class="muted" style="font-size:12px; margin-top:6px;">On filtre la liste selon ce choix.</div>
+      </div>
+
+      <label style="margin-top:10px;">Dates à affecter</label>
+      <div class="datesGrid" id="datesGrid"></div>
+
+      <label style="margin-top:10px;">Choisir une ressource</label>
+      <select id="resourceSelect"></select>
+      <div class="muted" id="resourceHint" style="font-size:12px; margin-top:6px;"></div>
+
+      <div class="modalActions">
+        <span class="status" id="modalStatus" style="margin-right:auto;"></span>
+        <button class="btn btn-ghost" id="btnCancel">Annuler</button>
+        <button class="btn btn-primary" id="btnConfirmAssign">Affecter</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, serverTimestamp,
+      query, orderBy, limit, onSnapshot,
+      where, getDocs, doc, runTransaction
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBMDCRv_VbR_lZ2hmoZQAdvL_YqbGfjnA8",
+      authDomain: "planning-kina.firebaseapp.com",
+      projectId: "planning-kina",
+      storageBucket: "planning-kina.firebasestorage.app",
+      messagingSenderId: "477281716726",
+      appId: "1:477281716726:web:f87f6bbf3bffca1b22dfd7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Helpers
+    function esc(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+
+    function dateRangeToList(startStr, endStr) {
+      const out = [];
+      const start = new Date(startStr + "T00:00:00");
+      const end = new Date(endStr + "T00:00:00");
+      if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return out;
+      const cur = new Date(start);
+      while (cur <= end) {
+        const y = cur.getFullYear();
+        const m = String(cur.getMonth()+1).padStart(2,"0");
+        const d = String(cur.getDate()).padStart(2,"0");
+        out.push(y+"-"+m+"-"+d);
+        cur.setDate(cur.getDate()+1);
+      }
+      return out;
+    }
+    function parseDatesList(s) { return (s||"").split(",").map(x=>x.trim()).filter(Boolean); }
+
+    function groupFromNeed(resourceType, subtype) {
+      if (resourceType === "parking") return "PARKING";
+      if (resourceType === "vehicle") return ""; // dépend ownerType (internal/rental)
+      if (resourceType === "human") {
+        const s = (subtype||"").toUpperCase();
+        if (s === "INTERNES" || s === "INTERNE") return "HUMANS_INTERNES";
+        if (s === "RG") return "HUMANS_RG";
+        if (s === "ADJOINT") return "HUMANS_ADJOINT";
+        if (s === "ARA") return "HUMANS_ARA";
+        if (s === "DECO") return "HUMANS_DECO";
+        return "HUMANS_RG";
+      }
+      return "";
+    }
+
+    // UI refs
+    const statusProject = document.getElementById("statusProject");
+    const statusNeed = document.getElementById("statusNeed");
+    const needProjectSel = document.getElementById("needProject");
+    const projectsList = document.getElementById("projectsList");
+    const projectsEmpty = document.getElementById("projectsEmpty");
+    const needsBar = document.getElementById("needsBar");
+    const needsEmpty = document.getElementById("needsEmpty");
+
+    // Modal refs
+    const overlay = document.getElementById("overlay");
+    const modalTitle = document.getElementById("modalTitle");
+    const modalSubtitle = document.getElementById("modalSubtitle");
+    const datesGrid = document.getElementById("datesGrid");
+    const resourceSelect = document.getElementById("resourceSelect");
+    const modalStatus = document.getElementById("modalStatus");
+    const resourceHint = document.getElementById("resourceHint");
+    const vehicleOwnerBlock = document.getElementById("vehicleOwnerBlock");
+    const vehInternal = document.getElementById("vehInternal");
+    const vehRental = document.getElementById("vehRental");
+
+    let currentNeed = null;
+    let currentNeedId = null;
+    let vehicleOwnerChoice = "INTERNAL"; // default
+
+    function openModal() { console.log('OPEN MODAL'); overlay.style.display = 'flex'; overlay.style.visibility='visible'; overlay.style.opacity='1'; }
+    function closeModal() { console.log('CLOSE MODAL'); overlay.style.display='none'; currentNeed=null; currentNeedId=null; modalStatus.textContent=''; }
+    document.getElementById("btnClose").addEventListener("click", closeModal);
+    document.getElementById("btnCancel").addEventListener("click", closeModal);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
+
+    function setVehChoice(v) {
+      vehicleOwnerChoice = v;
+      vehInternal.className = "btn " + (v==="INTERNAL" ? "btn-primary" : "btn-ghost");
+      vehRental.className = "btn " + (v==="RENTAL" ? "btn-primary" : "btn-ghost");
+      loadResourcesForNeed();
+    }
+    vehInternal.addEventListener("click", () => setVehChoice("INTERNAL"));
+    vehRental.addEventListener("click", () => setVehChoice("RENTAL"));
+
+    // Live projects (list + select)
+    const qProjects = query(collection(db, "projects"), orderBy("createdAt", "desc"), limit(50));
+    onSnapshot(qProjects, (snap) => {
+      projectsList.innerHTML = "";
+      needProjectSel.innerHTML = "";
+
+      if (snap.empty) {
+        projectsEmpty.style.display = "block";
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "Aucun projet — crée d’abord un projet";
+        needProjectSel.appendChild(opt);
+        return;
+      }
+      projectsEmpty.style.display = "none";
+
+      snap.forEach(docu => {
+        const p = docu.data();
+        const id = docu.id;
+
+        const div = document.createElement("div");
+        div.className = "projCard";
+        div.innerHTML = `
+          <p class="projName">${esc(p.projectName || "Projet")}</p>
+          <div class="small"><b>Client:</b> ${esc(p.clientName || "—")}</div>
+          <div class="small"><b>Email:</b> ${esc(p.clientEmail || "—")}</div>
+          <div class="small"><b>Période:</b> ${esc(p.startDate || "—")} → ${esc(p.endDate || "—")}</div>
+        `;
+        projectsList.appendChild(div);
+
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = `${p.projectName || "Projet"} — ${p.clientName || "Client"}`;
+        needProjectSel.appendChild(opt);
+      });
+    });
+
+    // Live needs (open/partial)
+    const qNeeds = query(collection(db, "needs"), orderBy("createdAt", "desc"), limit(120));
+    onSnapshot(qNeeds, (snap) => {
+      needsBar.innerHTML = "";
+      let shown = 0;
+
+      snap.forEach(docu => {
+        const n = docu.data();
+        if (n.status !== "open" && n.status !== "partial") return;
+
+        shown += 1;
+        const needId = docu.id;
+
+        const title = `${n.resourceType || "resource"} / ${n.subtype || "—"}`;
+        const datesCount = Array.isArray(n.dates) ? n.dates.length : 0;
+        const qty = n.quantity || 1;
+        const brut = (n.dailyBrut != null && n.dailyBrut !== "") ? `${n.dailyBrut} € / j` : "—";
+
+        const div = document.createElement("div");
+        div.className = "needCard";
+        div.innerHTML = `
+          <div class="needTop">
+            <div>
+              <p class="needTitle">${esc(title)}</p>
+              <div class="needMeta">
+                <div><b>Projet:</b> ${esc(n.projectName || "—")}</div>
+                <div><b>Dates:</b> ${datesCount} jour(s)</div>
+                <div><b>Quantité:</b> ${qty}</div>
+                ${n.resourceType === "human" ? `<div><b>Brut/j:</b> ${esc(brut)}</div>` : ""}
+              </div>
+            </div>
+            <div class="pill">${esc(n.status || "open")}</div>
+          </div>
+
+          <div class="needActions">
+            <button class="btn btn-dark" data-needid="${needId}">Affecter</button>
+          </div>
+        `;
+
+        // bind
+        div.querySelector("button[data-needid]").addEventListener("click", () => { console.log('CLICK AFFECTER', needId); openAssignModal(needId, n); });
+        needsBar.appendChild(div);
+      });
+
+      needsEmpty.style.display = (shown === 0) ? "block" : "none";
+    });
+
+    async function openAssignModal(needId, needData) {
+      currentNeedId = needId;
+      currentNeed = needData;
+      modalStatus.textContent = "";
+
+      const title = `Affecter : ${needData.resourceType || ""} / ${needData.subtype || "—"}`;
+      modalTitle.textContent = title;
+      modalSubtitle.textContent = `Projet : ${needData.projectName || "—"}`;
+
+      // dates checklist
+      datesGrid.innerHTML = "";
+      const dates = Array.isArray(needData.dates) ? needData.dates : []; if(!dates.length){ console.warn('Need sans dates', needData); }
+      dates.forEach(d => {
+        const item = document.createElement("div");
+        item.className = "dateItem";
+        item.innerHTML = `<input type="checkbox" checked data-date="${esc(d)}" /> <div>${esc(d)}</div>`;
+        datesGrid.appendChild(item);
+      });
+
+      // vehicle owner choice UI
+      if (needData.resourceType === "vehicle") {
+        vehicleOwnerBlock.style.display = "block";
+        setVehChoice("INTERNAL");
+      } else {
+        vehicleOwnerBlock.style.display = "none";
+      }
+
+      await loadResourcesForNeed();
+      openModal();
+    }
+
+    function getSelectedDates() {
+      const checks = datesGrid.querySelectorAll("input[type=checkbox][data-date]");
+      const out = [];
+      checks.forEach(c => { if (c.checked) out.push(c.getAttribute("data-date")); });
+      return out;
+    }
+
+    async function loadResourcesForNeed() {
+      resourceSelect.innerHTML = "";
+      resourceHint.textContent = "";
+
+      if (!currentNeed) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "Aucun besoin sélectionné";
+        resourceSelect.appendChild(opt);
+        return;
+      }
+
+      let q = null;
+
+      if (currentNeed.resourceType === "human") {
+        const grp = groupFromNeed("human", currentNeed.subtype);
+        resourceHint.textContent = `Filtre : moyens humains actifs (${grp})`;
+        q = query(
+          collection(db, "means"),
+          where("type", "==", "human"),
+          where("active", "==", true),
+          where("group", "==", grp)
+        );
+      }
+
+      if (currentNeed.resourceType === "parking") {
+        resourceHint.textContent = "Filtre : parkings actifs";
+        q = query(
+          collection(db, "means"),
+          where("type", "==", "parking"),
+          where("active", "==", true)
+        );
+      }
+
+      if (currentNeed.resourceType === "vehicle") {
+        const grp = (vehicleOwnerChoice === "RENTAL") ? "VEHICLES_RENTAL" : "VEHICLES_INTERNAL";
+        resourceHint.textContent = `Filtre : véhicules actifs (${vehicleOwnerChoice === "RENTAL" ? "Location" : "Interne"})`;
+        q = query(
+          collection(db, "means"),
+          where("type", "==", "vehicle"),
+          where("active", "==", true),
+          where("group", "==", grp)
+        );
+      }
+
+      if (!q) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "Aucune ressource disponible (filtre)";
+        resourceSelect.appendChild(opt);
+        return;
+      }
+
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "Aucune ressource trouvée (vérifie tes means: type/group/active)";
+        resourceSelect.appendChild(opt);
+        return;
+      }
+
+      snap.forEach(docu => {
+        const m = docu.data();
+        const opt = document.createElement("option");
+        opt.value = docu.id;
+        opt.textContent = m.label || m.name || docu.id;
+        resourceSelect.appendChild(opt);
+      });
+    }
+
+    // Create project
+    document.getElementById("btnCreateProject").addEventListener("click", async () => {
+      statusProject.textContent = "Enregistrement…";
+
+      const clientName = document.getElementById("clientName").value.trim();
+      const projectName = document.getElementById("projectName").value.trim();
+      const clientEmail = document.getElementById("clientEmail").value.trim();
+      const startDate = document.getElementById("projectStart").value;
+      const endDate = document.getElementById("projectEnd").value;
+
+      if (!clientName || !projectName) { statusProject.textContent = "⚠️ Client + Nom du projet obligatoires."; return; }
+
+      try {
+        await addDoc(collection(db, "projects"), {
+          clientName, projectName, clientEmail,
+          startDate: startDate || "", endDate: endDate || "",
+          status: "active",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        statusProject.textContent = "✅ Projet créé.";
+        ["clientName","projectName","clientEmail","projectStart","projectEnd"].forEach(id => document.getElementById(id).value = "");
+      } catch(e) {
+        console.error(e);
+        statusProject.textContent = "❌ Erreur Firestore.";
+      }
+    });
+
+    // Create need (avec coverage initial)
+    document.getElementById("btnCreateNeed").addEventListener("click", async () => {
+      statusNeed.textContent = "Enregistrement…";
+
+      const projectId = needProjectSel.value;
+      const projectNameTxt = needProjectSel.options[needProjectSel.selectedIndex]?.textContent || "";
+      const resourceType = document.getElementById("resourceType").value;
+      const subtype = document.getElementById("subtype").value.trim();
+      const start = document.getElementById("needStart").value;
+      const end = document.getElementById("needEnd").value;
+      const listStr = document.getElementById("needDatesList").value.trim();
+      const quantity = parseInt(document.getElementById("quantity").value || "1", 10);
+      const dailyBrutStr = document.getElementById("dailyBrut").value.trim();
+      const dailyBrut = dailyBrutStr ? Number(dailyBrutStr) : null;
+      const note = document.getElementById("needNote").value.trim();
+
+      if (!projectId) { statusNeed.textContent = "⚠️ Choisis un projet."; return; }
+      if (!subtype) { statusNeed.textContent = "⚠️ Sous-type obligatoire (ex: RG, ADJOINT, VAN_9…)."; return; }
+
+      let dates = [];
+      if (listStr) dates = parseDatesList(listStr);
+      else if (start && end) dates = dateRangeToList(start, end);
+
+      if (!dates.length) { statusNeed.textContent = "⚠️ Renseigne des dates (période ou liste)."; return; }
+      if (!quantity || quantity < 1) { statusNeed.textContent = "⚠️ Quantité invalide."; return; }
+
+      let group = "";
+      if (resourceType === "parking") group = "PARKING";
+      if (resourceType === "vehicle") group = "VEHICLES_INTERNAL"; // par défaut (affinera à l’affectation)
+      if (resourceType === "human") group = groupFromNeed("human", subtype);
+
+      // coverage map: date -> 0
+      const coverage = {};
+      dates.forEach(d => coverage[d] = 0);
+
+      try {
+        await addDoc(collection(db, "needs"), {
+          projectId,
+          projectName: projectNameTxt,
+          resourceType,
+          subtype,
+          group,
+          dates,
+          coverage,
+          quantity,
+          dailyBrut: resourceType === "human" ? (dailyBrut ?? "") : "",
+          costType: resourceType === "human" ? "brut_day" : "fixed",
+          status: "open",
+          assignedCount: 0,
+          note,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        statusNeed.textContent = "✅ Besoin ajouté (non affecté).";
+        ["subtype","needStart","needEnd","needDatesList","dailyBrut","needNote"].forEach(id => document.getElementById(id).value = "");
+        document.getElementById("quantity").value = "1";
+      } catch(e) {
+        console.error(e);
+        statusNeed.textContent = "❌ Erreur Firestore.";
+      }
+    });
+
+    // Confirm assignment (transaction: update coverage/status)
+    document.getElementById("btnConfirmAssign").addEventListener("click", async () => {
+      modalStatus.textContent = "Enregistrement…";
+
+      if (!currentNeedId || !currentNeed) { modalStatus.textContent = "⚠️ Besoin non sélectionné."; return; }
+
+      const resourceId = resourceSelect.value;
+      const selectedDates = getSelectedDates();
+
+      if (!resourceId) { modalStatus.textContent = "⚠️ Choisis une ressource."; return; }
+      if (!selectedDates.length) { modalStatus.textContent = "⚠️ Sélectionne au moins une date."; return; }
+
+      try {
+        await runTransaction(db, async (tx) => {
+          const needRef = doc(db, "needs", currentNeedId);
+          const needSnap = await tx.get(needRef);
+          if (!needSnap.exists()) throw new Error("Need introuvable.");
+
+          const need = needSnap.data();
+          const quantity = Number(need.quantity || 1);
+
+          // coverage init si absent
+          const cov = need.coverage || {};
+          const allDates = Array.isArray(need.dates) ? need.dates : [];
+          allDates.forEach(d => { if (cov[d] == null) cov[d] = 0; });
+
+          // Incrément sur les dates sélectionnées (cap à quantity)
+          selectedDates.forEach(d => {
+            if (cov[d] == null) cov[d] = 0;
+            cov[d] = Math.min(quantity, Number(cov[d] || 0) + 1);
+          });
+
+          // Status: filled si toutes les dates ont coverage >= quantity
+          let minCov = Infinity;
+          let maxCov = 0;
+          allDates.forEach(d => {
+            const v = Number(cov[d] || 0);
+            if (v < minCov) minCov = v;
+            if (v > maxCov) maxCov = v;
+          });
+
+          let status = "open";
+          if (maxCov > 0) status = "partial";
+          if (minCov >= quantity && allDates.length) status = "filled";
+
+          const assignedCount = Math.min(quantity, maxCov);
+
+          tx.update(needRef, {
+            coverage: cov,
+            status,
+            assignedCount,
+            updatedAt: serverTimestamp()
+          });
+
+          // create assignment
+          const assignRef = doc(collection(db, "assignments"));
+          const resourceLabel = resourceSelect.options[resourceSelect.selectedIndex]?.textContent || resourceId;
+
+          tx.set(assignRef, {
+            projectId: need.projectId,
+            projectName: need.projectName || "",
+            needId: currentNeedId,
+            resourceType: need.resourceType,
+            subtype: need.subtype,
+            resourceId,
+            resourceLabel,
+            dates: selectedDates,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        });
+
+        modalStatus.textContent = "✅ Affectation enregistrée.";
+        setTimeout(closeModal, 500);
+      } catch(e) {
+        console.error(e);
+        modalStatus.textContent = "❌ Erreur Firestore (transaction).";
+      }
+    });
+  </script>
+</body>
+</html>
